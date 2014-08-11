@@ -1,8 +1,7 @@
 var dependencies = ['ngRoute',
 										'ui.bootstrap',
 										'underscore',
-										'MyApp.controllers', 
-										'MyApp.directives',
+										'MyApp.controllers',
 										'MyApp.factories']
 
 var app = angular.module('MyApp', dependencies)
