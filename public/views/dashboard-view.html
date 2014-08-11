@@ -1,0 +1,64 @@
+<div class="container">
+  <div class="header">
+    <h3>McMaster Web Crawler</h3>
+  </div>
+
+	<div class="jumbotron">
+		
+		<h1 class="title">Indeed & Glassdoor Crawler</h1>
+    
+    <form>
+	    <div class="form-group">
+		    <label>Company Name</label>
+		    <input type="text" ng-model="review.company_name" class="form-control" placeholder="Company Name">
+		  </div>
+		  <div class="form-group">
+		    <label>Indeed Url</label>
+		    <input type="text" ng-model="review.indeed_url" class="form-control" placeholder="Indeed Url">
+		    <p class="help-block">Ex. http://www.indeed.com/cmp/Google/reviews</p>
+		  </div>
+		  <div class="form-group">
+		    <label>Glassdoor Url</label>
+		    <input type="text" ng-model="review.glassdoor_url" class="form-control" placeholder="Glassdoor Url">
+		    <p class="help-block">Ex. http://www.glassdoor.ca/Reviews/Google-Reviews-E9079.htm</p>
+		  </div>
+    </form>
+    <button class="btn btn-default btn-default" id="submit-button" ng-click="submit()">Submit</button>
+    <div class="progress">
+			<div class="progress-bar" style="{{percentComplete()}}"></div>
+		</div>
+		<div class="search-box">
+			<input type="text" class="form-control search-text" ng-model="searchText" placeholder="Search by Company">
+			<button type="submit" class="btn btn-default search-button" ng-click="getReviews()">Refresh</button>
+		</div>
+		
+		<div class="scroll-table">
+			<table class="table table-striped">
+				<thead>
+					<tr>
+						<th>Company Name</th>
+						<th>Date Created</th>
+						<th>Download Link</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat="review in reviews | filter:searchText">
+						<td>{{review.company_name}}</td>
+						<td>{{dateToString(review.created_at)}}</td>
+						<td>
+							<a target="_self" ng-href="/public/render/reviews/{{review.csv_file_path}}?company_name={{review.company_name}}">
+	  						<button ng-disabled="review.failed" class="btn btn-small btn-default">Download</button>
+							</a>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+
+  <div class="footer">
+    <p>&copy; Kurt DaCosta 2014</p>
+  </div>
+
+</div>

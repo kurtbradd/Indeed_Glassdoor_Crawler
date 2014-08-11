@@ -1,0 +1,102 @@
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('PT Sans'), 
+  local('PTSans-Regular'), 
+  url("/fonts/PTSans.woff") format('woff');
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  /*font-family: 'PT Sans', sans-serif;*/
+}
+
+html {
+  overflow: auto;
+}
+
+body {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.container {
+  max-width: 730px;
+}
+
+.header {
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e5e5e5;
+}
+.header h3 {
+  padding-bottom: 19px;
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: 15px;
+}
+
+.footer {
+  margin-top: 10px;
+  padding-top: 5px;
+  color: #777;
+  border-top: 1px solid #e5e5e5;
+}
+
+.jumbotron {
+  padding: 20px !important;
+  margin-bottom: 10px !important;
+}
+
+.jumbotron .title {
+  margin-top: 0px;
+  font-size: 40px;
+}
+
+.help-block {
+  margin:0 auto !important;
+  padding-left: 12px;
+  padding-top: 5px;
+  font-size: 14px !important;
+}
+
+.search-box {
+  width:100%;
+  display: inline-block;
+}
+
+.search-text {
+  width: 75%;
+  float: left;
+}
+
+.search-button {
+  width:20%;
+  float: right;
+}
+
+#submit-button {
+  margin-bottom: 5px;
+  width: 100%;
+}
+
+.scroll-table {
+  height: 300px;
+  overflow: auto;
+}
+
+.progress {
+  background: #ebedef;
+  border-radius: 32px;
+  height: 12px;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  margin-top: 10px;
+}
+.progress-bar {
+  background: rgb(58, 169, 219);
+  line-height: 12px;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
