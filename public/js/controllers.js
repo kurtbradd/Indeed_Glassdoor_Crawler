@@ -60,6 +60,18 @@ module.controller('DashboardCtrl', ['$scope', 'Review', function($scope, Review)
 
 	$scope.getReviews();
 
+	$scope.submitLong = function () {
+		console.log('starting long web crawl');
+		Review.submitLong($scope.review)
+		.success(function(data){
+			console.log(data)
+		})
+		.error(function(error) {
+			console.log('could not start long crawl');
+			window.alert('Error: Please make sure all fields are filled & correct');
+		});
+	}
+
 	$scope.submit = function () {
 		console.log('starting web crawl');
 		Review.submit($scope.review)
