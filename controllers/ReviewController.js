@@ -3,6 +3,9 @@ var mongoose = require('mongoose'),
     jobQueue = require('../workers/jobQueue.js')
 
 module.exports = {
+	postLong: function (socketio) {
+		
+	},
 	post: function(socketio) {
 		return function (req, res){
 		if (req.body.company_name && req.body.glassdoor_url && req.body.indeed_url) {
