@@ -66,14 +66,8 @@ body {
   display: inline-block;
 }
 
-.search-text {
-  width: 75%;
-  float: left;
-}
-
 .search-button {
-  width:20%;
-  float: right;
+  width:100%;
 }
 
 #submit-button {

@@ -23,13 +23,18 @@
 		    <p class="help-block">Ex. http://www.glassdoor.ca/Reviews/Google-Reviews-E9079.htm</p>
 		  </div>
     </form>
-    <button class="btn btn-default btn-default" id="submit-button" ng-click="submit()">Submit</button>
+    <button class="btn btn-default btn-default" id="submit-button" ng-click="submit()">Submit Crawl</button>
+		<button class="btn btn-default btn-default" id="submit-button" ng-click="submitLong()">Submit Long Crawl</button>
     <div class="progress">
 			<div class="progress-bar" style="{{percentComplete()}}"></div>
 		</div>
-		<div class="search-box">
-			<input type="text" class="form-control search-text" ng-model="searchText" placeholder="Search by Company">
-			<button type="submit" class="btn btn-default search-button" ng-click="getReviews()">Refresh</button>
+		<div class="row">
+			<div class="col-xs-8">
+				<input type="text" class="form-control search-text" ng-model="searchText" placeholder="Search by Company">
+			</div>
+			<div class="col-xs-4">
+				<button type="submit" class="btn btn-default search-button" ng-click="getReviews()">Refresh</button>
+			</div>
 		</div>
 		
 		<div class="scroll-table">
