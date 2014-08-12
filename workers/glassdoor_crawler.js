@@ -51,7 +51,7 @@ exports.crawlGlassdoorReview = crawlGlassdoorReview = function crawlGlassdoorRev
 	return deferred.promise;
 }
 
-function getNumberOfReviews(url) {
+exports.getNumberOfReviews = getNumberOfReviews = function getNumberOfReviews(url) {
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
@@ -65,7 +65,7 @@ function getNumberOfReviews(url) {
 	return deferred.promise;
 }
 
-function getReviewsFromURL(url) {
+exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url) {
 	console.log('Fetching URL: ' + url);
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {

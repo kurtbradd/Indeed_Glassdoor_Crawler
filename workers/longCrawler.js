@@ -22,43 +22,28 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 
 	createIndeedJobsData(indeedURL)
 	.then(function(indeedJobs){
-		createIndeedJobs(indeedJobs);
+
+		createIndeedJobs(indeedJobs)
+		.then(function(reviews) {
+			console.log(reviews);
+		})
+		
 	});
 
-
-	// Q.all([])
-	// .then(function(){
-	// 	// if no errors in other promises
-	// 	// then continue
-	// })
-
-
-	// cb is for percent... return overall percent for full crawl	
-
-	// keep count of all jobs....as one completes calculate new percentage complete
-
-	// get urls for indeed
-	// get urls for glassdoor
-	// iterate over each set and call the appropriate
-	// crawl & parse methods
-	// as each job completes store the review data in an array
-	// parse the array into CSV
-
-	// if job fails, notify parent job of failure
 }
 
 function createIndeedJobs (indeedJobs) {
 	var deferred = Q.defer();
 	var reviews = []
 	var jobPromises = [];
-	console.log('creating indeed jobs')
+	completedJobs = 1;
 
 	_.forEach(indeedJobs, function(jobData) {
 		var deferredJob = Q.defer();
-		job = jobsMake.create('longtask', jobData)
+		job = jobsMake.create('indeedLongCrawl', jobData)
 		jobPromises.push(deferredJob.promise);
 		job.on('result', function(reviewsArray) {
-			console.log('Job Complete')
+			// console.log(completedJobs++);
 			reviews = reviews.concat(reviewsArray);
 			deferredJob.resolve();
 		})
@@ -69,10 +54,9 @@ function createIndeedJobs (indeedJobs) {
 		job.save();
 	})
 
-	console.log(jobPromises);
-
 	Q.all(jobPromises)
 	.then(function(data) {
+		console.log('ALL COMPLETE');
 		console.log(reviews.length);
 		deferred.resolve(reviews);
 	})
@@ -80,13 +64,10 @@ function createIndeedJobs (indeedJobs) {
 		console.log('error');
 		deferred.reject(error)
 	});
-
-
 	return deferred.promise;
-
 };
 
-jobsProc.process('longtask', 4, function (job, done) {
+jobsProc.process('indeedLongCrawl', 200, function (job, done) {
 	indeed.getReviewsFromURL(job.data.url, job.data.featured)
 	.then(function(reviews){
 		job.send("result", reviews);
@@ -112,7 +93,7 @@ function createIndeedJobsData (indeedURL) {
 		console.log('got numbver of reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
 		console.log(numPages);
-		for (i=0; i<4; i++) {
+		for (i=0; i<2; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = indeedURL + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
 			featured = (i == 0)?(true):(false);
