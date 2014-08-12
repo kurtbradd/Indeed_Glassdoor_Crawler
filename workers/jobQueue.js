@@ -32,11 +32,14 @@ jobs.on('job complete', function(id){
 		if (err) {
 			return;
 		}
-    job.remove(function(err){
-    	if (err) {
-    		return;
-    	}
-      console.log('removed completed job #%d', job.id);
-    });
+		// delay job removal
+    setTimeout(function () {
+    	job.remove(function(err){
+	    	if (err) {
+	    		return;
+	    	}
+	      console.log('removed completed job #%d', job.id);
+	    });
+    }, 10000)
   });
 });

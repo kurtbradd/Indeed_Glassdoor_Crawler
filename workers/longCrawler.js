@@ -1,3 +1,4 @@
+console.log('long worker');
 var glassdoor = require('./glassdoor_crawler');
 var indeed 		= require('./indeed_crawler');
 var _ 				= require('lodash');
@@ -46,25 +47,42 @@ function createIndeedJobs (indeedJobs) {
 	// var reviews = []
 	console.log('creating indeed jobs')
 	_.forEach(indeedJobs, function(jobData) {
+		console.log('created job');
 		job = jobsMake.create('longtask', jobData)
-		job.save();
-		job.on('complete', function (id, result) {
-			console.log(result)
+		job.on('complete', function (result) {
+			kue.Job.get(job.id, function(err, finishedJob){
+				if (err) {
+					console.log('error finding old job');
+					return console.log(err);
+				}
+    		console.log(finishedJob.data.result + "<-----");
+  		});
 		})
+		job.on('failed', function (err) {
+			console.log(err);
+		})
+		job.save();
 	})
 };
 
-jobsProc.process('longtask',1, function (job, done) {
-	// indeed.getReviewsFromURL(job.url, job.featured)
-	// .then(function(reviews){
-	// 	console.log('got data back')
-	// 	reviews = reviews.concat(reviews)
-	// })
-	// .fail(function(error){
-	// 	deferred.reject(error)
-	// });
-	console.log('got job' + job.data);
-	done(null, 'finished');
+jobsProc.process('longtask', 1, function (job, done) {
+	console.log('processing task');
+	indeed.getReviewsFromURL(job.data.url, job.data.featured)
+	.then(function(reviews){
+		console.log(reviews.length + '<== length');
+		job.data.result = {name:"kurt"};
+		job.save(function(err) {
+			if (err) {
+				console.log('errror saving job');
+				return done(error);
+			}
+			console.log('saved task');
+			done(null, reviews);
+		})
+	})
+	.fail(function(error){
+		done(error)
+	});
 })
 
 
@@ -81,7 +99,8 @@ function createIndeedJobsData (indeedURL) {
 	.then(function(numReviews){
 		console.log('got numbver of reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
-		for (i=0; i<4; i++) {
+		console.log(numPages);
+		for (i=0; i<8; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = indeedURL + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
 			featured = (i == 0)?(true):(false);
