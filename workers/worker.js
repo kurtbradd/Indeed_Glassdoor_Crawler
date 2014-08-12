@@ -53,7 +53,6 @@ else {
 	});
 
 	jobs.process('crawlUrlLong', 1, function (job, done) {
-		console.log(job.data);
 		longCrawler.crawlReviews(job.data.indeed_url, job.data.glassdoor_url, job.data.review_id, function(percent){
 			// return overall percentage of slow crawl to front
 		});
