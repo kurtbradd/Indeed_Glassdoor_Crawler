@@ -5,9 +5,10 @@ kue.app.listen(3001);
 
 jobs.promote(500);
 
+//crawlType = "crawlURL"  && "crawlUrlLong"
 //cb(error, completed, progress)
-exports.crawlURL = crawlURL = function crawlURL (data, cb) {
-	var job = jobs.create('crawlURL', data);
+exports.crawlURL = crawlURL = function crawlURL (crawlType ,data, cb) {
+	var job = jobs.create(crawlType, data);
 	job.delay(1000);
 	job.attempts(1);
 	job

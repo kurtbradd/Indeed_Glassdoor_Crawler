@@ -18,7 +18,7 @@ exports.crawlGlassdoorReview = crawlGlassdoorReview = function crawlGlassdoorRev
 		// REMOVE IN PRODUCTION
 		//numPages = (numPages > 100) ? (1) : (numPages);
 		console.log('num of glassdoor pages = ' + numPages)
-		for (i=0; i<numPages; i++) {
+		for (i=0; i<1; i++) {
 			pageIndex = i+1;
 			newURL = url.replace('.htm', '');
 			searchURL = newURL + '_P' + pageIndex + '.htm';

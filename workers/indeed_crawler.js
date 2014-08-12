@@ -17,7 +17,7 @@ exports.crawlIndeedReview = function crawlIndeedReview(url, percentComplete) {
 		console.log(numReviews);
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE)
 		console.log('num of indeed pages = ' + numPages);
-		for (i=0; i<numPages; i++) {
+		for (i=0; i<1; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = url + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
 			featured = (i == 0)?(true):(false);
@@ -49,7 +49,7 @@ exports.crawlIndeedReview = function crawlIndeedReview(url, percentComplete) {
 	return deferred.promise;
 }
 
-function getNumberOfReviews(url) {
+exports.getNumberOfReviews = getNumberOfReviews =function getNumberOfReviews(url) {
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
@@ -63,7 +63,7 @@ function getNumberOfReviews(url) {
 	return deferred.promise;
 }
 
-function getReviewsFromURL(url, getFeaturedReview) {
+exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url, getFeaturedReview) {
 	console.log('Fetching URL: ' + url);
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {

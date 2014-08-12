@@ -10,6 +10,7 @@ if (cluster.isMaster) {
 else {
 	var	kue 		= require('kue'),
 			crawler = require('./crawler.js'),
+			longCrawler = require('./longCrawler.js'),
 			jobs 		= kue.createQueue();
 
 	jobs.process('crawlURL', 1, function (job, done){
@@ -50,6 +51,14 @@ else {
 				done(error);
 			});
 	});
+
+	jobs.process('crawlUrlLong', 1, function (job, done) {
+		console.log(job.data);
+		console.log('got long crawl at worker')
+		longCrawler.crawlReviews(job.data.indeed_url, job.data.glassdoor_url, job.data.review_id, function(percent){
+			// return overall percentage of slow crawl to front
+		});
+	})
 }
 
 
