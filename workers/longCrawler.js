@@ -21,24 +21,31 @@ var URL_INDEED 					= "http://www.indeed.com/cmp/Google/reviews";
 exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, cb) {
 	
 
-	// createIndeedJobsData(indeedURL)
-	// .then(function(indeedJobs){
-	// 	createJobs(indeedJobs, 'indeedLongCrawl')
-	// 	.then(function(reviews) {
-	// 		// console.log(reviews);
-	// 	})
-	// });
+	numberOfReviews = 0;
+	createIndeedJobsDataPromise = createIndeedJobsData(indeedURL);
+	createGlassdoorJobsDataPromise = createGlassdoorJobsData(glassdoorURL);
 
-	createGlassdoorJobsData(glassdoorURL)
+	createIndeedJobsDataPromise
+	.then(function(indeedJobs){
+		numberOfReviews+= indeedJobs.length;
+		createJobs(indeedJobs, 'indeedLongCrawl', function(completedJobs) {
+			// called when a job completes
+		})
+		.then(function(reviews) {
+			// console.log(reviews);
+		})
+	});
+	
+	createGlassdoorJobsDataPromise
 	.then(function(glassdoorJobs){
-		createJobs(glassdoorJobs, 'glassdoorLongCrawl')
+		numberOfReviews+= glassdoorJobs.length;
+		createJobs(glassdoorJobs, 'glassdoorLongCrawl', function(completedJobs) {
+			// called when a job completes
+		})
 		.then(function(reviews) {
 			// console.log(reviews.length);
 		})
 	});
-
-
-
 
 
 }
@@ -54,13 +61,14 @@ jobsProc.process('indeedLongCrawl', 200, function (job, done) {
 	});
 })
 
-jobsProc.process('glassdoorLongCrawl', 200, function (job, done) {
+jobsProc.process('glassdoorLongCrawl', 10, function (job, done) {
 	glassdoor.getReviewsFromURL(job.data.url)
 	.then(function(reviews){
 		job.send("result", reviews);
     done();
 	})
 	.fail(function(error){
+		console.log('glassdoor failed')
 		done(error)
 	});
 })
@@ -70,17 +78,24 @@ function createJobs (indeedJobs, type) {
 	var deferred = Q.defer();
 	var reviews = []
 	var jobPromises = [];
+	completeCount = 0;
 	// Create Job Instances
 	_.forEach(indeedJobs, function(jobData) {
 		var deferredJob = Q.defer();
-		job = jobsMake.create(type, jobData)
+		job = jobsMake.create(type, jobData);
+		job.attempts(20);
+		job.delay(1000);
 		jobPromises.push(deferredJob.promise);
 		job.on('result', function(reviewsArray) {
 			reviews = reviews.concat(reviewsArray);
+			console.log(++completeCount);
 			deferredJob.resolve();
 		})
+		job.on('failed attempt', function () {
+			console.log('failed job attempt')
+		})
 		job.on('failed', function (err) {
-			console.log(err);
+			console.log('something failed');
 			deferredJob.reject(err);
 		})
 		job.save();
@@ -141,6 +156,7 @@ function createGlassdoorJobsData (glassdoorURL) {
 
 	glassdoor.getNumberOfReviews(glassdoorURL)
 	.then(function(numReviews){
+		console.log(numReviews)
 		console.log('got number of reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
 		console.log(numPages);

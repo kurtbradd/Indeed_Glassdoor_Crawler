@@ -72,8 +72,6 @@ exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url) 
 		if (!error && response.statusCode == 200) {
 			deferred.resolve(parseBodyForReviews(body));		
 		} else {
-			console.log(error);
-			console.log(response.statusCode);
 			deferred.reject('Could not get reviews from Glassdoor');
 		}
 	});
