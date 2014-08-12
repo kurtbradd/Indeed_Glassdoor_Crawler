@@ -6,9 +6,14 @@ var json2csv 	= require('json2csv');
 var fs 				= require('fs');
 var Q 				= require('q');
 
-var kue 			= require('kue');
+// var kue 			= require('kue');
+var kue 			= require("kue-send");
 var jobsMake	= kue.createQueue();
 var jobsProc 	= kue.createQueue();
+
+
+// var kue = require("kue-send");
+// var jobs = kue.createQueue();
 
 var URL_GLASSDOOR 			= "http://www.glassdoor.ca/Reviews/Google-Reviews-E9079.htm";
 var URL_INDEED 					= "http://www.indeed.com/cmp/Google/reviews";
@@ -43,42 +48,49 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 }
 
 function createIndeedJobs (indeedJobs) {
-	// var deferred = Q.defer();
-	// var reviews = []
+	var deferred = Q.defer();
+	var reviews = []
+	var jobPromises = [];
 	console.log('creating indeed jobs')
+
 	_.forEach(indeedJobs, function(jobData) {
-		console.log('created job');
+		var deferredJob = Q.defer();
 		job = jobsMake.create('longtask', jobData)
-		job.on('complete', function (result) {
-			kue.Job.get(job.id, function(err, finishedJob){
-				if (err) {
-					console.log('error finding old job');
-					return console.log(err);
-				}
-    		console.log(finishedJob.data.result + "<-----");
-  		});
+		jobPromises.push(deferredJob.promise);
+		job.on('result', function(reviewsArray) {
+			console.log('Job Complete')
+			reviews = reviews.concat(reviewsArray);
+			deferredJob.resolve();
 		})
 		job.on('failed', function (err) {
 			console.log(err);
+			deferredJob.reject(err);
 		})
 		job.save();
 	})
+
+	console.log(jobPromises);
+
+	Q.all(jobPromises)
+	.then(function(data) {
+		console.log(reviews.length);
+		deferred.resolve(reviews);
+	})
+	.fail(function(error){
+		console.log('error');
+		deferred.reject(error)
+	});
+
+
+	return deferred.promise;
+
 };
 
-jobsProc.process('longtask', 1, function (job, done) {
-	console.log('processing task');
+jobsProc.process('longtask', 4, function (job, done) {
 	indeed.getReviewsFromURL(job.data.url, job.data.featured)
 	.then(function(reviews){
-		console.log(reviews.length + '<== length');
-		job.data.result = {name:"kurt"};
-		job.save(function(err) {
-			if (err) {
-				console.log('errror saving job');
-				return done(error);
-			}
-			console.log('saved task');
-			done(null, reviews);
-		})
+		job.send("result", reviews);
+    done();
 	})
 	.fail(function(error){
 		done(error)
@@ -100,7 +112,7 @@ function createIndeedJobsData (indeedURL) {
 		console.log('got numbver of reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
 		console.log(numPages);
-		for (i=0; i<8; i++) {
+		for (i=0; i<4; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = indeedURL + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
 			featured = (i == 0)?(true):(false);
