@@ -29,10 +29,8 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 	.then(function(indeedJobs){
 		numberOfReviews+= indeedJobs.length;
 		createJobs(indeedJobs, 'indeedLongCrawl', function(completedJobs) {
-			// called when a job completes
 		})
 		.then(function(reviews) {
-			// console.log(reviews);
 		})
 	});
 	
@@ -40,10 +38,8 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 	.then(function(glassdoorJobs){
 		numberOfReviews+= glassdoorJobs.length;
 		createJobs(glassdoorJobs, 'glassdoorLongCrawl', function(completedJobs) {
-			// called when a job completes
 		})
 		.then(function(reviews) {
-			// console.log(reviews.length);
 		})
 	});
 
