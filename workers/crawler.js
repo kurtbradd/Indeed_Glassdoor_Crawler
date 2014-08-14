@@ -54,6 +54,7 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 
 };
 
+// callback(error, savedFilePath)
 function parseReviewsToCSV(reviewID, array, callback) {
 	csvConfig = {
 		data: array, 
