@@ -6,41 +6,73 @@ var json2csv 	= require('json2csv');
 var fs 				= require('fs');
 var Q 				= require('q');
 
-// var kue 			= require('kue');
 var kue 			= require("kue-send");
 var jobsMake	= kue.createQueue();
 var jobsProc 	= kue.createQueue();
 
 
-// var kue = require("kue-send");
-// var jobs = kue.createQueue();
-
-var URL_GLASSDOOR 			= "http://www.glassdoor.ca/Reviews/Google-Reviews-E9079.htm";
-var URL_INDEED 					= "http://www.indeed.com/cmp/Google/reviews";
-
 exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, cb) {
 	
-
+	indeedJobsToFulfill = [];
+	glassdoorJobsToFulfill = []
 	numberOfReviews = 0;
+	numberOfReviewsFinished = 0;
 	createIndeedJobsDataPromise = createIndeedJobsData(indeedURL);
 	createGlassdoorJobsDataPromise = createGlassdoorJobsData(glassdoorURL);
+	fetchIndeedReviewsPromise = []; 
+	fetchGlassdoorReviewsPromise = [];
+
+
 
 	createIndeedJobsDataPromise
 	.then(function(indeedJobs){
+		console.log('done creating indeed jobs');
+		indeedJobsToFulfill = indeedJobs;
 		numberOfReviews+= indeedJobs.length;
-		createJobs(indeedJobs, 'indeedLongCrawl', function(completedJobs) {
-		})
-		.then(function(reviews) {
-		})
 	});
 	
 	createGlassdoorJobsDataPromise
 	.then(function(glassdoorJobs){
+		console.log('done creating glassdoor jobs');
+		glassdoorJobsToFulfill = glassdoorJobs;
 		numberOfReviews+= glassdoorJobs.length;
-		createJobs(glassdoorJobs, 'glassdoorLongCrawl', function(completedJobs) {
+	});
+
+	Q.all([createIndeedJobsDataPromise, createGlassdoorJobsDataPromise])
+	.then(function(data) {
+		console.log('fetching all jobs');
+
+		fetchIndeedReviewsPromise = createJobs(indeedJobsToFulfill, 'indeedLongCrawl', function(completedJobs) {
+			console.log('indeed complete ' + completedJobs + '/' + indeedJobsToFulfill.length)
 		})
-		.then(function(reviews) {
+
+		fetchGlassdoorReviewsPromise = createJobs(glassdoorJobsToFulfill, 'glassdoorLongCrawl', function(completedJobs) {
+			console.log('glassdoor complete ' + completedJobs + '/' + glassdoorJobsToFulfill.length)
 		})
+
+		Q.all([fetchGlassdoorReviewsPromise, fetchIndeedReviewsPromise])
+		.then(function(data) {
+			console.log('All reviews fetched, ready for CSV build.')
+			var allReviews = data[0].concat(data[1]);
+
+			parseReviewsToCSV(reviewID, allReviews, function(error, savedFilePath) {
+				if (!error) {
+					console.log('CSV saved');
+					console.log(savedFilePath);
+					// deferred.resolve(savedFilePath);
+				}
+				// deferred.reject(error);
+			})
+		})
+		.fail(function(error) {
+			console.log('something went wrong while fetching the jobs');
+			console.log(error);
+		});
+
+	})
+	.fail(function(error){
+		console.log('something went wrong while creating the jobs');
+		console.log(error);
 	});
 
 
@@ -53,6 +85,7 @@ jobsProc.process('indeedLongCrawl', 200, function (job, done) {
     done();
 	})
 	.fail(function(error){
+		console.log('indeed failed');
 		done(error)
 	});
 })
@@ -70,21 +103,24 @@ jobsProc.process('glassdoorLongCrawl', 10, function (job, done) {
 })
 
 // Type = indeedLongCrawl | glassdoorLongCrawl
-function createJobs (indeedJobs, type) {
+// cb(numCompletedJobs)
+function createJobs (indeedJobs, type, cb) {
+	console.log('create jobs called');
 	var deferred = Q.defer();
 	var reviews = []
 	var jobPromises = [];
-	completeCount = 0;
+	var completeCount = 0;
+
 	// Create Job Instances
 	_.forEach(indeedJobs, function(jobData) {
 		var deferredJob = Q.defer();
-		job = jobsMake.create(type, jobData);
+		var job = jobsMake.create(type, jobData);
 		job.attempts(20);
 		job.delay(1000);
 		jobPromises.push(deferredJob.promise);
 		job.on('result', function(reviewsArray) {
 			reviews = reviews.concat(reviewsArray);
-			console.log(++completeCount);
+			cb(++completeCount);
 			deferredJob.resolve();
 		})
 		job.on('failed attempt', function () {
@@ -113,16 +149,15 @@ function createJobs (indeedJobs, type) {
 function createIndeedJobsData (indeedURL) {
 	console.log('creating job data');
 	var deferred = Q.defer();
-	jobs = [];
-	PAGINATE_URL1 		= "?start="; //page index goes after = sign ex20
-	PAGINATE_URL2 		= "&lang=en";
-	REVIEWS_PER_PAGE 	= 20;
+	var jobs = [];
+	var PAGINATE_URL1 		= "?start="; //page index goes after = sign ex20
+	var PAGINATE_URL2 		= "&lang=en";
+	var REVIEWS_PER_PAGE 	= 20;
 
 	indeed.getNumberOfReviews(indeedURL)
 	.then(function(numReviews){
-		console.log('got number of reviews');
+		console.log(numReviews + ' indeed reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
-		console.log(numPages);
 		for (i=0; i<2; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = indeedURL + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
@@ -145,17 +180,14 @@ function createIndeedJobsData (indeedURL) {
 function createGlassdoorJobsData (glassdoorURL) {
 	console.log('creating job data');
 	var deferred = Q.defer();
-	jobs = [];
-
+	var jobs = [];
 	var PAGINATE_URL1			= "_P2.htm";
 	var REVIEWS_PER_PAGE 	= 10;
 
 	glassdoor.getNumberOfReviews(glassdoorURL)
 	.then(function(numReviews){
-		console.log(numReviews)
-		console.log('got number of reviews');
+		console.log(numReviews + ' glassdoor reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
-		console.log(numPages);
 		for (i=0; i<2; i++) {
 			pageIndex = i+1;
 			newURL = glassdoorURL.replace('.htm', '');
@@ -172,4 +204,36 @@ function createGlassdoorJobsData (glassdoorURL) {
 		deferred.reject(error);
 	})
 	return deferred.promise;
+}
+
+// callback(error, savedFilePath)
+function parseReviewsToCSV(reviewID, array, callback) {
+	csvConfig = {
+		data: array, 
+		
+		fields: ['title', 'date','content_pros', 'content_cons',
+		'rating_company', 'rating_job_work_life_balance', 'rating_job_security',
+		'rating_management', 'rating_compensation_benefits', 'rating_job_culture',
+		'advice_senior_mgmt','advice_would_recommend','ceo_approval' ,'content_description'],
+
+		fieldNames: ['Title', 'Date', 'Pros', 'Cons', 'Company Rating', 
+		'Job/Work Life Balance', 'Job Security','Company Management', 'Compensation & Benefits',
+		'Company Culture','Senior Mgmt Advice', 'Would Recommend', 'CEO Approval', 'Review Description']
+	}
+
+	json2csv(csvConfig, function(err, csv) {
+	  if (err) {
+	  	callback(err);
+	  } else {
+	  	var fileName = reviewID + '_review.csv';
+	  	var filePath = '../public/render/reviews/'+ fileName;
+	  	fs.writeFile(filePath, csv, function(err) {
+	    	if (err){
+	    		callback(err);
+	    		return;
+	    	}
+	    	callback(false, fileName);
+	  	});
+		}
+	});	
 }
