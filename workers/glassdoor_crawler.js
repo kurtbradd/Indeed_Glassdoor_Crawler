@@ -56,8 +56,11 @@ exports.getNumberOfReviews = getNumberOfReviews = function getNumberOfReviews(ur
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
 			var $ = cheerio.load(body);
-			companyLabel = $('.counts').find('.notranslate').text();
-			deferred.resolve(parseFloat(companyLabel.replace(',', '')));
+			// companyLabel = $('.counts').find('.notranslate').text();
+			companyLabel = $('.employerStats').find('.ratingInfo').find('.hideHH').find('.notranslate').text();
+			companyLabel = companyLabel.replace(',', '');
+			companyLabel = companyLabel.replace(' Reviews', '');
+			deferred.resolve(parseFloat(companyLabel));
 		} else {
 			deferred.reject('Could not get reviews from Glassdoor');
 		}
