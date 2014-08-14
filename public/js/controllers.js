@@ -9,6 +9,7 @@ module.controller('DashboardCtrl', ['$scope', 'Review', function($scope, Review)
 	}
 
 	// REMOVE IN PRODUCTION
+	$scope.review.company_name = 'Google';
 	$scope.review.glassdoor_url = 'http://www.glassdoor.ca/Reviews/Google-Reviews-E9079.htm';
 	$scope.review.indeed_url = 'http://www.indeed.com/cmp/Google/reviews';
 
