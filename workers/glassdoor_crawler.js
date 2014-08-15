@@ -98,7 +98,6 @@ function parseBodyForReviews (body) {
 		review_ratings 	= review_data.find('.gdRatings');
 		subRatings 			= review_ratings.find('.subRatings').find('.undecorated').children();
 		rating_count 		= subRatings.length;
-		console.log(rating_count);
 		
 		rating_company								= review_ratings.find('.value-title').attr('title');
 		rating_compensation_benefits 	= subRatings.eq(0).find('.gdBars').attr('title');
@@ -108,7 +107,6 @@ function parseBodyForReviews (body) {
 		rating_job_security 					= subRatings.eq(4).find('.gdBars').attr('title');
 		//old reviews only have 4 sections
 		if (rating_count == 4) {
-			console.log('went to old ratings');
 			rating_job_culture 						= "";
 			rating_compensation_benefits 	= subRatings.eq(0).find('.gdBars').attr('title');
 			rating_job_work_life_balance 	= subRatings.eq(1).find('.gdBars').attr('title');
