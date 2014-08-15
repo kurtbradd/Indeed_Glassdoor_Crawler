@@ -81,7 +81,8 @@ exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url) 
 	return deferred.promise;
 }
 
-getReviewsFromURL(URL);
+// getReviewsFromURL(URL);
+getReviewsFromURL("http://www.glassdoor.ca/Reviews/Google-Reviews-E9079_P236.htm");
 
 function parseBodyForReviews (body) {
 	var reviewsArray = [];
@@ -97,6 +98,7 @@ function parseBodyForReviews (body) {
 		review_ratings 	= review_data.find('.gdRatings');
 		subRatings 			= review_ratings.find('.subRatings').find('.undecorated').children();
 		rating_count 		= subRatings.length;
+		console.log(rating_count);
 		
 		rating_company								= review_ratings.find('.value-title').attr('title');
 		rating_compensation_benefits 	= subRatings.eq(0).find('.gdBars').attr('title');
@@ -107,18 +109,26 @@ function parseBodyForReviews (body) {
 		//old reviews only have 4 sections
 		if (rating_count == 4) {
 			console.log('went to old ratings');
-			rating_job_culture 						= '';
+			rating_job_culture 						= "";
 			rating_compensation_benefits 	= subRatings.eq(0).find('.gdBars').attr('title');
 			rating_job_work_life_balance 	= subRatings.eq(1).find('.gdBars').attr('title');
 			rating_management 						= subRatings.eq(2).find('.gdBars').attr('title');
 			rating_job_security 					= subRatings.eq(3).find('.gdBars').attr('title');
-		} 
+		}
+
+		if (rating_count == 0) {
+			rating_compensation_benefits 	= "";
+			rating_job_work_life_balance 	= "";
+			rating_management 						= "";
+			rating_job_culture 						= "";
+			rating_job_security 					= "";
+		}
 
 		review_description	= review_data.find('.description');
 		prosConsAdvice 			= review_description.find('.prosConsAdvice');
 		content_pros 				= prosConsAdvice.find('.pros').text();
 		content_cons 				= prosConsAdvice.find('.cons').text();
-		advice_senior_mgmt	= '';
+		advice_senior_mgmt	= "";
 		
 		// if == 3 that means has section for advice mgmt
 		if (prosConsAdvice.children().length == 3) {
@@ -128,29 +138,29 @@ function parseBodyForReviews (body) {
 		employeeReviewChildren 		= review_description.find('.padBotLg').find('.fill').children();
 		recommendsCompanyDiv 			= employeeReviewChildren.eq(0);
 		recommendsCeoDiv 					= employeeReviewChildren.eq(2);
-		advice_would_recommend 		= '';
-		ceo_approval 								= "";
+		advice_would_recommend 		= "";
+		ceo_approval 							= "";
 
 		if (recommendsCompanyDiv.children().length > 0) {
 			square = recommendsCompanyDiv.find('.sqLed');
 			if (square.hasClass('green')) {
-				advice_would_recommend = "Approves";
-			}
-			if (square.hasClass('yellow')) {
-				advice_would_recommend = "No Opinion";
+				advice_would_recommend = "YES";
 			}
 			if (square.hasClass('red')) {
-				advice_would_recommend = "Disapproves";		
+				advice_would_recommend = "NO";		
 			}
 		}
 
 		if (recommendsCeoDiv.children().length > 0) {
-			square = recommendsCompanyDiv.find('.sqLed');
+			square = recommendsCeoDiv.find('.sqLed');
 			if (square.hasClass('green')) {
-				ceo_approval = "YES";
+				ceo_approval = "Approves";
+			}
+			if (square.hasClass('yellow')) {
+				ceo_approval = "No Opinion";
 			}
 			if (square.hasClass('red')) {
-				ceo_approval = "NO";		
+				ceo_approval = "Disapproves";		
 			}
 		}
 		
