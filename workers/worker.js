@@ -20,7 +20,6 @@ else {
 			});
 			crawlPromise
 			.then(function(savedFilePath){
-				console.log(savedFilePath);
 				mongoose = require('mongoose')
 				mongoose.connect('mongodb://localhost:27017/WebCrawler')
     		Review = require('../models/Review.js');
@@ -31,7 +30,6 @@ else {
     				done(error);
     				return;
     			}
-    			console.log('gets here');
     			console.log(savedFilePath);
     			review.csv_file_path = savedFilePath;
     			review.save(function(error, review){
@@ -40,7 +38,7 @@ else {
     					done(error);
     					return;
     				}
-    				console.log(review);
+    				// console.log(review);
     				mongoose.connection.close()
     				done();
     			})
@@ -54,7 +52,8 @@ else {
 
 	jobs.process('crawlUrlLong', 1, function (job, done) {
 		longCrawler.crawlReviews(job.data.indeed_url, job.data.glassdoor_url, job.data.review_id, function(percent){
-			// return overall percentage of slow crawl to front
+			console.log("Percent Complete: " + percent);
+			job.progress(percent, 100);
 		});
 	})
 }
