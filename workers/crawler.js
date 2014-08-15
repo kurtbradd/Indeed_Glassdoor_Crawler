@@ -19,6 +19,7 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 		cb((((glassdoorPercentComplete+indeedPercentComplete)/2)*100).toFixed(2));
 	})
 	.then(function(reviews) {
+		console.log(reviews.length + " glassdoor reviews")
 		reviewsArray = reviewsArray.concat(reviews);
 	})
 	.fail(function(error) {
@@ -31,6 +32,7 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 		cb((((glassdoorPercentComplete+indeedPercentComplete)/2)*100).toFixed(2));
 	})
 	.then(function(reviews) {
+		console.log(reviews.length + " indeed reviews")
 		reviewsArray = reviewsArray.concat(reviews);
 	})
 	.fail(function(error) {

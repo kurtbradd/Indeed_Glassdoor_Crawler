@@ -10,18 +10,22 @@ var kue 			= require("kue-send");
 var jobsMake	= kue.createQueue();
 var jobsProc 	= kue.createQueue();
 
-
+// cb(percentComplete);
 exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, cb) {
 	
+	// return a promise here, that will itneract with the controller and notify
+	// of failed, success, and progress...
+
 	indeedJobsToFulfill = [];
 	glassdoorJobsToFulfill = []
 	numberOfReviews = 0;
 	numberOfReviewsFinished = 0;
+	indeedReviewsFinished = 0;
+	glassdoorReviewsFinished = 0;
 	createIndeedJobsDataPromise = createIndeedJobsData(indeedURL);
 	createGlassdoorJobsDataPromise = createGlassdoorJobsData(glassdoorURL);
 	fetchIndeedReviewsPromise = []; 
 	fetchGlassdoorReviewsPromise = [];
-
 
 
 	createIndeedJobsDataPromise
@@ -43,11 +47,15 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 		console.log('fetching all jobs');
 
 		fetchIndeedReviewsPromise = createJobs(indeedJobsToFulfill, 'indeedLongCrawl', function(completedJobs) {
-			console.log('indeed complete ' + completedJobs + '/' + indeedJobsToFulfill.length)
+			indeedReviewsFinished = completedJobs;
+			console.log(completedJobs + "/" + indeedJobsToFulfill.length + ": indeed")
+			cb((((indeedReviewsFinished+glassdoorReviewsFinished)/numberOfReviews)*100).toFixed(2));
 		})
 
 		fetchGlassdoorReviewsPromise = createJobs(glassdoorJobsToFulfill, 'glassdoorLongCrawl', function(completedJobs) {
-			console.log('glassdoor complete ' + completedJobs + '/' + glassdoorJobsToFulfill.length)
+			glassdoorReviewsFinished = completedJobs;
+			console.log(completedJobs + "/" + glassdoorJobsToFulfill.length + ": glassdoor")
+			cb((((indeedReviewsFinished+glassdoorReviewsFinished)/numberOfReviews)*100).toFixed(2));
 		})
 
 		Q.all([fetchGlassdoorReviewsPromise, fetchIndeedReviewsPromise])
@@ -74,12 +82,11 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 		console.log('something went wrong while creating the jobs');
 		console.log(error);
 	});
-
-
 }
 
+
 jobsProc.process('indeedLongCrawl', 200, function (job, done) {
-	indeed.getReviewsFromURL(job.data.url, job.data.featured)
+	indeed.getReviewsFromIndeedURL(job.data.url, job.data.featured)
 	.then(function(reviews){
 		job.send("result", reviews);
     done();
@@ -90,8 +97,8 @@ jobsProc.process('indeedLongCrawl', 200, function (job, done) {
 	});
 })
 
-jobsProc.process('glassdoorLongCrawl', 10, function (job, done) {
-	glassdoor.getReviewsFromURL(job.data.url)
+jobsProc.process('glassdoorLongCrawl', 15, function (job, done) {
+	glassdoor.getReviewsFromGlassdoorURL(job.data.url)
 	.then(function(reviews){
 		job.send("result", reviews);
     done();
@@ -111,11 +118,17 @@ function createJobs (indeedJobs, type, cb) {
 	var jobPromises = [];
 	var completeCount = 0;
 
+	count=0;
 	// Create Job Instances
 	_.forEach(indeedJobs, function(jobData) {
 		var deferredJob = Q.defer();
+
+		if (type == "glassdoorLongCrawl") {
+			console.log("glassdoorcount " + ++count);
+		}
+
 		var job = jobsMake.create(type, jobData);
-		job.attempts(20);
+		job.attempts(35);
 		job.delay(1000);
 		jobPromises.push(deferredJob.promise);
 		job.on('result', function(reviewsArray) {
@@ -135,8 +148,8 @@ function createJobs (indeedJobs, type, cb) {
 	// Wait for all Job instances to complete
 	Q.all(jobPromises)
 	.then(function(data) {
-		console.log('ALL COMPLETE');
-		console.log(reviews.length);
+		// console.log('ALL COMPLETE');
+		// console.log(reviews.length);
 		deferred.resolve(reviews);
 	})
 	.fail(function(error){
@@ -154,11 +167,12 @@ function createIndeedJobsData (indeedURL) {
 	var PAGINATE_URL2 		= "&lang=en";
 	var REVIEWS_PER_PAGE 	= 20;
 
-	indeed.getNumberOfReviews(indeedURL)
+	indeed.getNumberOfIndeedReviews(indeedURL)
 	.then(function(numReviews){
 		console.log(numReviews + ' indeed reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
-		for (i=0; i<2; i++) {
+		console.log(numPages + ' indeed pages');
+		for (i=0; i<numPages; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = indeedURL + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
 			featured = (i == 0)?(true):(false);
@@ -184,11 +198,12 @@ function createGlassdoorJobsData (glassdoorURL) {
 	var PAGINATE_URL1			= "_P2.htm";
 	var REVIEWS_PER_PAGE 	= 10;
 
-	glassdoor.getNumberOfReviews(glassdoorURL)
+	glassdoor.getNumberOfGlassdoorReviews(glassdoorURL)
 	.then(function(numReviews){
 		console.log(numReviews + ' glassdoor reviews');
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
-		for (i=0; i<2; i++) {
+		console.log(numPages + ' glassdoor pages');
+		for (i=0; i<numPages; i++) {
 			pageIndex = i+1;
 			newURL = glassdoorURL.replace('.htm', '');
 			searchURL = newURL + '_P' + pageIndex + '.htm';
@@ -205,6 +220,8 @@ function createGlassdoorJobsData (glassdoorURL) {
 	})
 	return deferred.promise;
 }
+
+
 
 // callback(error, savedFilePath)
 function parseReviewsToCSV(reviewID, array, callback) {
