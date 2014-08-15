@@ -12,17 +12,16 @@ exports.crawlGlassdoorReview = crawlGlassdoorReview = function crawlGlassdoorRev
 	var promisesArray = [];
 	var reviewsArray = [];
 	var completedPromises = 0;
-	getNumberOfReviews(url)
+	getNumberOfGlassdoorReviews(url)
 	.then(function(numReviews){
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE)
-		// REMOVE IN PRODUCTION
-		//numPages = (numPages > 100) ? (1) : (numPages);
-		console.log('num of glassdoor pages = ' + numPages)
+		console.log(numReviews + " Glassdoor Reviews");
+		console.log(numPages + " Glassdoor Pages");
 		for (i=0; i<1; i++) {
 			pageIndex = i+1;
 			newURL = url.replace('.htm', '');
 			searchURL = newURL + '_P' + pageIndex + '.htm';
-			promise = getReviewsFromURL(searchURL);
+			promise = getReviewsFromGlassdoorURL(searchURL);
 			promisesArray.push(promise);
 			promise
 			.then(function(reviews){
@@ -51,12 +50,11 @@ exports.crawlGlassdoorReview = crawlGlassdoorReview = function crawlGlassdoorRev
 	return deferred.promise;
 }
 
-exports.getNumberOfReviews = getNumberOfReviews = function getNumberOfReviews(url) {
+exports.getNumberOfGlassdoorReviews = getNumberOfGlassdoorReviews = function getNumberOfGlassdoorReviews(url) {
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
 			var $ = cheerio.load(body);
-			// companyLabel = $('.counts').find('.notranslate').text();
 			companyLabel = $('.employerStats').find('.ratingInfo').find('.hideHH').find('.notranslate').text();
 			companyLabel = companyLabel.replace(',', '');
 			companyLabel = companyLabel.replace(' Reviews', '');
@@ -68,12 +66,12 @@ exports.getNumberOfReviews = getNumberOfReviews = function getNumberOfReviews(ur
 	return deferred.promise;
 }
 
-exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url) {
-	console.log('Fetching URL: ' + url);
+exports.getReviewsFromGlassdoorURL = getReviewsFromGlassdoorURL = function getReviewsFromGlassdoorURL(url) {
+	// console.log('Fetching URL: ' + url);
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
-			deferred.resolve(parseBodyForReviews(body));		
+			deferred.resolve(parseBodyForGlassdoorReviews(body));		
 		} else {
 			deferred.reject('Could not get reviews from Glassdoor');
 		}
@@ -81,10 +79,7 @@ exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url) 
 	return deferred.promise;
 }
 
-// getReviewsFromURL(URL);
-getReviewsFromURL("http://www.glassdoor.ca/Reviews/Google-Reviews-E9079_P236.htm");
-
-function parseBodyForReviews (body) {
+function parseBodyForGlassdoorReviews (body) {
 	var reviewsArray = [];
 	var $ = cheerio.load(body);
 
@@ -177,7 +172,6 @@ function parseBodyForReviews (body) {
 			'rating_job_security':rating_job_security,
 			'ceo_approval':ceo_approval
 		}
-		console.log(review);
 		reviewsArray.push(review);
 	});
 

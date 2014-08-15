@@ -12,16 +12,16 @@ exports.crawlIndeedReview = function crawlIndeedReview(url, percentComplete) {
 	var promisesArray = [];
 	var reviewsArray = [];
 	var completedPromises = 0;
-	getNumberOfReviews(url)
+	getNumberOfIndeedReviews(url)
 	.then(function(numReviews){
-		console.log(numReviews);
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE)
-		console.log('num of indeed pages = ' + numPages);
+		console.log(numReviews + " Indeed Reviews");
+		console.log(numPages + " Indeed Pages");
 		for (i=0; i<1; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = url + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
 			featured = (i == 0)?(true):(false);
-			promise = getReviewsFromURL(searchURL, featured);
+			promise = getReviewsFromIndeedURL(searchURL, featured);
 			promise
 			.then(function(reviews){
 				completedPromises++;
@@ -49,7 +49,7 @@ exports.crawlIndeedReview = function crawlIndeedReview(url, percentComplete) {
 	return deferred.promise;
 }
 
-exports.getNumberOfReviews = getNumberOfReviews =function getNumberOfReviews(url) {
+exports.getNumberOfIndeedReviews = getNumberOfIndeedReviews = function getNumberOfIndeedReviews(url) {
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
@@ -63,12 +63,12 @@ exports.getNumberOfReviews = getNumberOfReviews =function getNumberOfReviews(url
 	return deferred.promise;
 }
 
-exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url, getFeaturedReview) {
-	console.log('Fetching URL: ' + url);
+exports.getReviewsFromIndeedURL = getReviewsFromIndeedURL = function getReviewsFromIndeedURL(url, getFeaturedReview) {
+	// console.log('Fetching URL: ' + url);
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
-			deferred.resolve(parseBodyForReviews(body, getFeaturedReview));		
+			deferred.resolve(parseBodyForIndeedReviews(body, getFeaturedReview));		
 		} else {
 			deferred.reject('Could not get reviews from Indeed');
 		}
@@ -76,7 +76,7 @@ exports.getReviewsFromURL = getReviewsFromURL = function getReviewsFromURL(url, 
 	return deferred.promise;
 }
 
-function parseBodyForReviews (body, getFeaturedReview) {
+function parseBodyForIndeedReviews (body, getFeaturedReview) {
 	var $ = cheerio.load(body);
 	var reviewsArray = [];
 	$('.company_review_container').filter(function(){
