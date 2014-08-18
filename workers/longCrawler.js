@@ -1,4 +1,3 @@
-console.log('long worker');
 var glassdoor = require('./glassdoor_crawler');
 var indeed 		= require('./indeed_crawler');
 var _ 				= require('lodash');
@@ -13,8 +12,7 @@ var jobsProc 	= kue.createQueue();
 // cb(percentComplete);
 exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, cb) {
 	
-	// return a promise here, that will itneract with the controller and notify
-	// of failed, success, and progress...
+	var deferred = Q.defer();
 
 	indeedJobsToFulfill = [];
 	glassdoorJobsToFulfill = []
@@ -29,82 +27,81 @@ exports.crawlReviews = function crawlReviews(indeedURL, glassdoorURL, reviewID, 
 
 
 	createIndeedJobsDataPromise
-	.then(function(indeedJobs){
-		console.log('done creating indeed jobs');
+	.then(function (indeedJobs){
 		indeedJobsToFulfill = indeedJobs;
 		numberOfReviews+= indeedJobs.length;
 	});
 	
 	createGlassdoorJobsDataPromise
-	.then(function(glassdoorJobs){
-		console.log('done creating glassdoor jobs');
+	.then(function (glassdoorJobs){
 		glassdoorJobsToFulfill = glassdoorJobs;
 		numberOfReviews+= glassdoorJobs.length;
 	});
 
 	Q.all([createIndeedJobsDataPromise, createGlassdoorJobsDataPromise])
-	.then(function(data) {
-		console.log('fetching all jobs');
+	.then(function (data) {
 
-		fetchIndeedReviewsPromise = createJobs(indeedJobsToFulfill, 'indeedLongCrawl', function(completedJobs) {
+		fetchIndeedReviewsPromise = createJobs(indeedJobsToFulfill, 'indeedLongCrawl', function (completedJobs) {
 			indeedReviewsFinished = completedJobs;
 			console.log(completedJobs + "/" + indeedJobsToFulfill.length + ": indeed")
-			cb((((indeedReviewsFinished+glassdoorReviewsFinished)/numberOfReviews)*100).toFixed(2));
+			console.log(glassdoorReviewsFinished + "/" + glassdoorJobsToFulfill.length + ": glassdoor")
+			cb(percentComplete());
 		})
 
-		fetchGlassdoorReviewsPromise = createJobs(glassdoorJobsToFulfill, 'glassdoorLongCrawl', function(completedJobs) {
+		fetchGlassdoorReviewsPromise = createJobs(glassdoorJobsToFulfill, 'glassdoorLongCrawl', function (completedJobs) {
 			glassdoorReviewsFinished = completedJobs;
+			console.log(indeedReviewsFinished + "/" + indeedJobsToFulfill.length + ": indeed")
 			console.log(completedJobs + "/" + glassdoorJobsToFulfill.length + ": glassdoor")
-			cb((((indeedReviewsFinished+glassdoorReviewsFinished)/numberOfReviews)*100).toFixed(2));
+			cb(percentComplete());
 		})
 
 		Q.all([fetchGlassdoorReviewsPromise, fetchIndeedReviewsPromise])
-		.then(function(data) {
-			console.log('All reviews fetched, ready for CSV build.')
+		.then(function (data) {
 			var allReviews = data[0].concat(data[1]);
 
-			parseReviewsToCSV(reviewID, allReviews, function(error, savedFilePath) {
+			parseReviewsToCSV(reviewID, allReviews, function (error, savedFilePath) {
 				if (!error) {
 					console.log('CSV saved');
-					console.log(savedFilePath);
-					// deferred.resolve(savedFilePath);
+					deferred.resolve(savedFilePath);
 				}
-				// deferred.reject(error);
+				deferred.reject("Could Not Save CSV.");
 			})
 		})
-		.fail(function(error) {
-			console.log('something went wrong while fetching the jobs');
-			console.log(error);
+		.fail(function (error) {
+			deferred.reject('Oops, something went wrong while crawling for reviews.');
 		});
 
 	})
-	.fail(function(error){
-		console.log('something went wrong while creating the jobs');
-		console.log(error);
+	.fail(function (error){
+		deferred.reject("Hmm, we cant find the amount of reviews to crawl. Is the URL correct?");
 	});
+
+	function percentComplete() {
+		return (((indeedReviewsFinished+glassdoorReviewsFinished)/numberOfReviews)*100).toFixed(2)
+	}
+
+	return deferred.promise;
 }
 
 
 jobsProc.process('indeedLongCrawl', 200, function (job, done) {
 	indeed.getReviewsFromIndeedURL(job.data.url, job.data.featured)
-	.then(function(reviews){
+	.then(function (reviews){
 		job.send("result", reviews);
     done();
 	})
-	.fail(function(error){
-		console.log('indeed failed');
-		done(error)
+	.fail(function (error){
+		done(error);
 	});
 })
 
 jobsProc.process('glassdoorLongCrawl', 15, function (job, done) {
 	glassdoor.getReviewsFromGlassdoorURL(job.data.url)
-	.then(function(reviews){
+	.then(function (reviews){
 		job.send("result", reviews);
     done();
 	})
-	.fail(function(error){
-		console.log('glassdoor failed')
+	.fail(function (error){
 		done(error)
 	});
 })
@@ -112,55 +109,46 @@ jobsProc.process('glassdoorLongCrawl', 15, function (job, done) {
 // Type = indeedLongCrawl | glassdoorLongCrawl
 // cb(numCompletedJobs)
 function createJobs (indeedJobs, type, cb) {
-	console.log('create jobs called');
 	var deferred = Q.defer();
 	var reviews = []
 	var jobPromises = [];
 	var completeCount = 0;
 
-	count=0;
-	// Create Job Instances
-	_.forEach(indeedJobs, function(jobData) {
+	_.forEach(indeedJobs, function (jobData) {
 		var deferredJob = Q.defer();
-
-		if (type == "glassdoorLongCrawl") {
-			console.log("glassdoorcount " + ++count);
-		}
 
 		var job = jobsMake.create(type, jobData);
 		job.attempts(35);
-		job.delay(1000);
+		job.backoff( function (attempts, delay){
+      return 500*attempts;
+    });
+		// job.delay(1000);
 		jobPromises.push(deferredJob.promise);
-		job.on('result', function(reviewsArray) {
+		job.on('result', function (reviewsArray) {
 			reviews = reviews.concat(reviewsArray);
 			cb(++completeCount);
 			deferredJob.resolve();
 		})
 		job.on('failed attempt', function () {
-			console.log('failed job attempt')
+			console.log('Failed Crawl Job Attempt')
 		})
-		job.on('failed', function (err) {
-			console.log('something failed');
-			deferredJob.reject(err);
+		job.on('failed', function () {
+			deferredJob.reject();
 		})
 		job.save();
 	})
-	// Wait for all Job instances to complete
+	
 	Q.all(jobPromises)
-	.then(function(data) {
-		// console.log('ALL COMPLETE');
-		// console.log(reviews.length);
+	.then(function (data) {
 		deferred.resolve(reviews);
 	})
-	.fail(function(error){
-		console.log('error');
-		deferred.reject(error)
+	.fail(function (error){
+		deferred.reject()
 	});
 	return deferred.promise;
 };
 
 function createIndeedJobsData (indeedURL) {
-	console.log('creating job data');
 	var deferred = Q.defer();
 	var jobs = [];
 	var PAGINATE_URL1 		= "?start="; //page index goes after = sign ex20
@@ -168,10 +156,10 @@ function createIndeedJobsData (indeedURL) {
 	var REVIEWS_PER_PAGE 	= 20;
 
 	indeed.getNumberOfIndeedReviews(indeedURL)
-	.then(function(numReviews){
-		console.log(numReviews + ' indeed reviews');
+	.then(function (numReviews){
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
-		console.log(numPages + ' indeed pages');
+		console.log(numReviews + " Indeed Reviews");
+		console.log(numPages + " Indeed Pages");
 		for (i=0; i<numPages; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = indeedURL + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
@@ -184,25 +172,23 @@ function createIndeedJobsData (indeedURL) {
 		}
 		deferred.resolve(jobs);
 	})
-	.fail(function(error) {
-		console.log(error);
-		deferred.reject(error);
+	.fail(function (error) {
+		deferred.reject();
 	})
 	return deferred.promise;
 }
 
 function createGlassdoorJobsData (glassdoorURL) {
-	console.log('creating job data');
 	var deferred = Q.defer();
 	var jobs = [];
 	var PAGINATE_URL1			= "_P2.htm";
 	var REVIEWS_PER_PAGE 	= 10;
 
 	glassdoor.getNumberOfGlassdoorReviews(glassdoorURL)
-	.then(function(numReviews){
-		console.log(numReviews + ' glassdoor reviews');
+	.then(function (numReviews){
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE);
-		console.log(numPages + ' glassdoor pages');
+		console.log(numReviews + " Glassdoor Reviews");
+		console.log(numPages + " Glassdoor Pages");
 		for (i=0; i<numPages; i++) {
 			pageIndex = i+1;
 			newURL = glassdoorURL.replace('.htm', '');
@@ -214,14 +200,11 @@ function createGlassdoorJobsData (glassdoorURL) {
 		}
 		deferred.resolve(jobs);
 	})
-	.fail(function(error) {
-		console.log(error);
-		deferred.reject(error);
+	.fail(function (error) {
+		deferred.reject();
 	})
 	return deferred.promise;
 }
-
-
 
 // callback(error, savedFilePath)
 function parseReviewsToCSV(reviewID, array, callback) {
@@ -238,13 +221,13 @@ function parseReviewsToCSV(reviewID, array, callback) {
 		'Company Culture','Senior Mgmt Advice', 'Would Recommend', 'CEO Approval', 'Review Description']
 	}
 
-	json2csv(csvConfig, function(err, csv) {
+	json2csv(csvConfig, function (err, csv) {
 	  if (err) {
 	  	callback(err);
 	  } else {
 	  	var fileName = reviewID + '_review.csv';
 	  	var filePath = '../public/render/reviews/'+ fileName;
-	  	fs.writeFile(filePath, csv, function(err) {
+	  	fs.writeFile(filePath, csv, function (err) {
 	    	if (err){
 	    		callback(err);
 	    		return;

@@ -29,11 +29,12 @@ module.controller('DashboardCtrl', ['$scope', 'Review', function($scope, Review)
 		console.log('complete');
 		$scope.crawlProgress = 0;
 		$scope.getReviews();
+		window.alert('Completed');
 	});
 
 	socket.on('crawlFailed', function (data) {
 		console.log('failed...');
-		window.alert('Oops, looks like something went wrong!')
+		window.alert(data);
 		$scope.crawlProgress = 0;
 		$scope.$apply();
 	});

@@ -9,7 +9,7 @@ module.exports = {
 		}
 	},
 
-	post: function(socketio) {
+	post: function (socketio) {
 		return function (req, res){
 			startCrawl(req, res, socketio, 'crawlURL');	
 		}
@@ -33,7 +33,7 @@ function startCrawl (req, res, socketio, crawlType) {
   	review.glassdoor_url = req.body.glassdoor_url;
   	review.indeed_url = req.body.indeed_url;
 
-  	review.save(function(err, saved_review) {
+  	review.save(function (err, saved_review) {
   		if (err) {
   			res.send(400);
   			return;
@@ -46,13 +46,13 @@ function startCrawl (req, res, socketio, crawlType) {
   			glassdoor_url : saved_review.glassdoor_url
   		};
 
-  		jobQueue.crawlURL(crawlType, job, function(error, completed, progress) {
+  		jobQueue.crawlURL(crawlType, job, function (error, completed, progress) {
   			if (error) {
-  				console.log('crawl failed');
-  				socketio.sockets.in(req.session.id).emit('crawlFailed', {});
+          console.log("Error:: " + error);
+  				socketio.sockets.in(req.session.id).emit('crawlFailed', error);
 
   				saved_review.failed = true;
-  				saved_review.save(function(err, failed_review) {
+  				saved_review.save(function (err, failed_review) {
   					if (!err && failed_review) {
   						console.log(failed_review);
   					}
@@ -60,11 +60,12 @@ function startCrawl (req, res, socketio, crawlType) {
   			}
 
   			if (completed) {
+          console.log('Crawl complete');
   				socketio.sockets.in(req.session.id).emit('crawlComplete', {});
   			}
 
   			if (progress) {
-  				console.log(progress);
+  				console.log('Crawl Progress: ' + progress);
   				socketio.sockets.in(req.session.id).emit('crawlProgress', progress);
   			}
   		});

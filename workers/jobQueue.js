@@ -2,7 +2,6 @@ var kue = require('kue'),
 		jobs = kue.createQueue();
 
 kue.app.listen(3001);
-
 jobs.promote(500);
 
 //crawlType = "crawlURL"  && "crawlUrlLong"
@@ -14,13 +13,11 @@ exports.crawlURL = crawlURL = function crawlURL (crawlType ,data, cb) {
 	job
 	.on('complete', function (){
 		cb(null, true);
-		console.log('job complete');
 	})
-	.on('failed', function (){
-		cb(true)
-		console.log('job failed');
+	.on('failed', function (error){
+		cb(error)
 	})
-	.on('progress', function(progress){
+	.on('progress', function (progress){
     cb(null, null, progress);
 	})
 	job.save();
@@ -32,7 +29,7 @@ jobs.on('job complete', function(id){
 		if (err) {
 			return;
 		}
-		job.remove(function(err){
+		job.remove(function (err){
     	if (err) {
     		return;
     	}

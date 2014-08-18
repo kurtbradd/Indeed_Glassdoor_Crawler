@@ -17,7 +17,7 @@ exports.crawlGlassdoorReview = crawlGlassdoorReview = function crawlGlassdoorRev
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE)
 		console.log(numReviews + " Glassdoor Reviews");
 		console.log(numPages + " Glassdoor Pages");
-		for (i=0; i<1; i++) {
+		for (i=0; i<numPages; i++) {
 			pageIndex = i+1;
 			newURL = url.replace('.htm', '');
 			searchURL = newURL + '_P' + pageIndex + '.htm';
@@ -26,7 +26,6 @@ exports.crawlGlassdoorReview = crawlGlassdoorReview = function crawlGlassdoorRev
 			promise
 			.then(function(reviews){
 				completedPromises++;
-				//console.log('Completed: ' + completedPromises + '/' + promisesArray.length);
 				percentComplete((completedPromises/promisesArray.length));
 				reviewsArray = reviewsArray.concat(reviews);
 			})
@@ -67,7 +66,6 @@ exports.getNumberOfGlassdoorReviews = getNumberOfGlassdoorReviews = function get
 }
 
 exports.getReviewsFromGlassdoorURL = getReviewsFromGlassdoorURL = function getReviewsFromGlassdoorURL(url) {
-	// console.log('Fetching URL: ' + url);
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
@@ -89,6 +87,7 @@ function parseBodyForGlassdoorReviews (body) {
 		// review_data = $('.hreview').eq(0);
 		review_title 		= review_data.find('.summary').eq(1).text();
 		review_date 		= review_data.find('.SL_date').text()
+		review_date 		= review_date.replace(' seconds ago', '');
 
 		review_ratings 	= review_data.find('.gdRatings');
 		subRatings 			= review_ratings.find('.subRatings').find('.undecorated').children();
@@ -100,6 +99,7 @@ function parseBodyForGlassdoorReviews (body) {
 		rating_management 						= subRatings.eq(2).find('.gdBars').attr('title');
 		rating_job_culture 						= subRatings.eq(3).find('.gdBars').attr('title');
 		rating_job_security 					= subRatings.eq(4).find('.gdBars').attr('title');
+		
 		//old reviews only have 4 sections
 		if (rating_count == 4) {
 			rating_job_culture 						= "";
@@ -175,7 +175,6 @@ function parseBodyForGlassdoorReviews (body) {
 		reviewsArray.push(review);
 	});
 
-	//console.log(reviewsArray);
 	return reviewsArray;
 }
 

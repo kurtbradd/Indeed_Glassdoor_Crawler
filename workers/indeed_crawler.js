@@ -13,37 +13,36 @@ exports.crawlIndeedReview = function crawlIndeedReview(url, percentComplete) {
 	var reviewsArray = [];
 	var completedPromises = 0;
 	getNumberOfIndeedReviews(url)
-	.then(function(numReviews){
+	.then(function (numReviews){
 		numPages = Math.ceil(numReviews/REVIEWS_PER_PAGE)
 		console.log(numReviews + " Indeed Reviews");
 		console.log(numPages + " Indeed Pages");
-		for (i=0; i<1; i++) {
+		for (i=0; i<numPages; i++) {
 			pageIndex = i * REVIEWS_PER_PAGE;
 			searchURL = url + PAGINATE_URL1 + pageIndex + PAGINATE_URL2;
 			featured = (i == 0)?(true):(false);
 			promise = getReviewsFromIndeedURL(searchURL, featured);
 			promise
-			.then(function(reviews){
+			.then(function (reviews){
 				completedPromises++;
-				//console.log('Completed: ' + completedPromises + '/' + promisesArray.length);
 				percentComplete((completedPromises/promisesArray.length));
 				reviewsArray = reviewsArray.concat(reviews);
 			})
-			.fail(function(error){
+			.fail(function (error){
 				deferred.reject(error);
 			});
 			promisesArray.push(promise);
 		}
 
 		Q.all(promisesArray)
-		.then(function() {
+		.then(function () {
 			deferred.resolve(reviewsArray);
 		})
-		.fail(function(error){
+		.fail(function (error){
 			deferred.reject(error);
 		});
 	})
-	.fail(function(error){
+	.fail(function (error){
 		deferred.reject(error);
 	});
 	return deferred.promise;
@@ -64,11 +63,10 @@ exports.getNumberOfIndeedReviews = getNumberOfIndeedReviews = function getNumber
 }
 
 exports.getReviewsFromIndeedURL = getReviewsFromIndeedURL = function getReviewsFromIndeedURL(url, getFeaturedReview) {
-	// console.log('Fetching URL: ' + url);
 	var deferred = Q.defer();
 	request(url, function (error, response, body) {
 		if (!error && response.statusCode == 200) {
-			deferred.resolve(parseBodyForIndeedReviews(body, getFeaturedReview));		
+			deferred.resolve(parseBodyForIndeedReviews(body, getFeaturedReview));
 		} else {
 			deferred.reject('Could not get reviews from Indeed');
 		}
@@ -79,7 +77,7 @@ exports.getReviewsFromIndeedURL = getReviewsFromIndeedURL = function getReviewsF
 function parseBodyForIndeedReviews (body, getFeaturedReview) {
 	var $ = cheerio.load(body);
 	var reviewsArray = [];
-	$('.company_review_container').filter(function(){
+	$('.company_review_container').filter(function (){
 		someData = $(this).children().eq(0);
 
 		featuredReview = someData.parent().parent().attr('id');
